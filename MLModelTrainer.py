@@ -1,9 +1,8 @@
 
 import pandas as pd 
 import numpy as np
-import ClasTrain
 import pickle
-
+import ClasTrain
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedKFold
 
@@ -28,10 +27,12 @@ data = pd.read_csv('.\\Data\\covtype.data', sep=",",names = columns)
 ### Preprocessing: ###
 ######################
 
+# getting the target and data from our DF
 from sklearn.model_selection import train_test_split
 X = np.array(data)[:,0:53]
 y = np.array(data)[:,54]
 
+# Train test Split and saving o test variables for further testing
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 print(X_train.shape)
 np.save(".\\Data\\y_test.npy",y_test)
@@ -43,22 +44,20 @@ kfold = StratifiedKFold(5)
 ####################
 
 ###### LogReg Classifier 
-"""
+
+#Learning via  own script best possible LogReg
 model_linear = ClasTrain.LogReg_Classifer(X_train,y_train,kfold,gridSearch=True)
 ###### Save Models
 print("Saving model...")
 pickle.dump(model_linear,open('.\\Models\\LinearModel.sav','wb'))
 
-from sklearn.metrics import accuracy_score
-preds = model_linear.predict(X_test)
-print(accuracy_score(preds,y_test))
-"""
 ###### SVC Classifier 
-"""
+
+#Learning via own function  best possible SVM
 svcClassifier = ClasTrain.SVC_Classifer(X_train,y_train,kfold,kern="linear",gridSearch=False)
 print("Saving model...")
 filename = 'C:\\Users\\barak\\Downloads\\RecrutationTask\\Models\\SVC.sav'
-pickle.dump(svcClassifier, open(filename, 'wb'))"""
+pickle.dump(svcClassifier, open(filename, 'wb'))
 
 ####### DNN Model
 from keras.callbacks import History
@@ -74,23 +73,22 @@ class_weights = class_weight.compute_class_weight(class_weight='balanced',
                                             y=np.array(y_train))
     
 
-
-# Learning Rate Scheduler
-from class_tools import step_decaygrid
-#lrate = LearningRateScheduler(step_decaygrid)
-
 #History
 history = History()
 
-#Early Stopping
-early_stopping = EarlyStopping(monitor='val_ROC', patience=100, mode='max', verbose=0,restore_best_weights=True)
+#Early Stopping - proved to be irrelevant, but in further iterations may be of hand
+# Using maximal validational ROC as a stopping metric
+early_stopping = EarlyStopping(monitor='val_ROC', patience=25, mode='max', verbose=0,restore_best_weights=True)
 
 #Searching for best parameters:
-# Searched: First FC Layer size, Second FC Layer size, Regularization
+# Searched: dropout rate, learning rate, oprimizer - Adam vs rmsprop
 from ClasTrain import build_model,gridNN
 gridSearchDnn = True
+
+#OneHotEncoding target variable as it is necessery for learning DNN
 y_train = to_categorical(y_train)
 
+# gridSearchDNN similarily is responsible for turning of GridSearch 
 if gridSearchDnn:
   keras_class = tf.keras.wrappers.scikit_learn.KerasClassifier(build_model)
   rnd_search_cv =gridNN(keras_class)
@@ -109,16 +107,19 @@ if gridSearchDnn:
   best_estim = {'lr':rnd_search_cv.best_params_['lr'],
                 'drp':rnd_search_cv.best_params_['drp'],
                 'optim':rnd_search_cv.best_params_['optim']}
-else:
+else: # when the gridSearch is off
   best_estim = {'lr' : 0.1,
                 'drp' : 0,
-                'optim' : "adam"}
+                'optim' : "adam"} # Seved in values proven by trial and error to be quite stable
 
 ### Fit model based on searched parameters
+
 from keras.metrics import AUC
-pickle.dump(best_estim, open('.\\Results\\gridDNN.sav', 'wb'))
+pickle.dump(best_estim, open('.\\Results\\gridDNN.sav', 'wb')) # Saving whole GridSearch for further analysis
 y_test_cat = to_categorical(y_test)
 history = History()
+
+# Importing and using step decay as Learning Rate Scheduler
 from class_tools import step_decay
 lrate = LearningRateScheduler(step_decay)
 
@@ -138,13 +139,10 @@ DNN.fit(X_train, y_train[:,1:], validation_split=0.2,
                                   }, 
                   batch_size=256,epochs=150,
                   callbacks=[history,lrate,early_stopping])
-
+ 
+# Saving Model
 DNN.save('.\\Models\\DNN')
 
-from sklearn.metrics import accuracy_score
-print(DNN.evaluate(X_test,y_test_cat[:,1:],batch_size=128))
-print(DNN.predict(X_test))
-print(accuracy_score(np.array(pd.DataFrame(data=DNN.predict(X_test),columns=[1,2,3,4,5,6,7]).idxmax(1)),y_test))
 from class_tools import LossAccPlot
 LossAccPlot(history)
 

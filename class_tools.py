@@ -1,14 +1,28 @@
 
 class ownScaler():
+  """
+    Own Scaler Based on Standard Scaler 
+    it chooses variables that has less than seven unique values and applies standardisation
+    by using sklearn.preprocessing StandardScaler
+
+
+  """
   def __init__(self,**kwargs):
+
+   
     from sklearn.preprocessing import StandardScaler
 
     self.kwargs = kwargs
-    self.sc = StandardScaler()
+    self.sc = StandardScaler() # sklearn Standard Scaler
   def fit(self,X,y=None):
+    """
+      Fits the data to scaling
+    """
     X_temp = X.copy()
 
     column_nums= []
+
+    # Get column that are not numeric
     for i in range(X_temp.shape[1]):
       if self.is_numeric(X[:,i]):
         column_nums.append(i)
@@ -17,6 +31,9 @@ class ownScaler():
   
     self.sc.fit(X_temp[:,column_nums])
   def is_numeric(self,X,y=None):
+    """
+      helper method used to determine whether vartiable is to be scaled
+    """
     from numpy import unique
 
     if len(unique(X)) > 7:
@@ -25,6 +42,9 @@ class ownScaler():
       return False
 
   def transform(self,X,y=None):
+    """
+      Scaling given matrix - returns 
+    """
     X_temp = X.copy()
     from numpy import hstack
     column_nums = []
@@ -39,6 +59,9 @@ class ownScaler():
     return hstack((X_temp[:,column_nums],X_temp[:,n_col_numns]))
 
   def fit_transform(self,X,y=None):
+    """
+      Conducting both fitting and transformation (it is imperative for use in pipelines)
+    """
     from numpy import hstack
     X_temp = X.copy()
     column_nums= []
@@ -53,15 +76,20 @@ class ownScaler():
 
 
 def save_coefficients(classifier, filename):
+    """
+      Old function used to save sklearn models as h5 files
+    """
     from h5py import File
-    """Save the coefficients of a linear model into a .h5 file."""
+    #Save the coefficients of a linear model into a .h5 file
     with File(filename, 'w') as hf:
         hf.create_dataset("coef",  data=classifier.coef_)
         hf.create_dataset("intercept",  data=classifier.intercept_)
         hf.create_dataset("classes", data=classifier.classes_)
 
 def load_coefficients(classifier, filename):
-    """Attach the saved coefficients to a linear model."""
+    """
+      Old function used to read sklearn models from h5 files
+    """
     from h5py import File
 
     with File(filename, 'r') as hf:
@@ -74,6 +102,9 @@ def load_coefficients(classifier, filename):
     return classifier
 
 def step_decaygrid(epoch):
+    """
+      Step decay with sewed 3 epoch drop
+    """
     import numpy as np
     initial_lrate = 0.01
     drop = 0.5
@@ -82,6 +113,11 @@ def step_decaygrid(epoch):
     return lrate
 
 def step_decay(epoch):
+    """
+      Step Decay: Gradually halves the learning rate every nth epoch
+
+      parameters are currently seved in for training Final model!
+    """
     import numpy as np
     initial_lrate = 0.01
     drop = 0.5

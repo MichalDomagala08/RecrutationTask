@@ -1,5 +1,5 @@
 ##### Loading Test Data 
-# %%
+
 
 #### Loading Libraries
 import pandas as pd
@@ -14,6 +14,10 @@ from class_tools import ownScaler
 
 kern = "linear"
 models = [] 
+
+###############
+### Reading Models
+###############
 
 #Read LogReg Model
 from sklearn.linear_model import LogisticRegression
@@ -49,48 +53,49 @@ y_test = np.load('.\\Data\\y_test.npy')
 rainbow = cm.get_cmap('Spectral', 512).reversed()
 newcmp = ListedColormap(rainbow(np.linspace(0.0, 0.9, 512)))
 
-# %%
+###############
+### Confusion Matrices
+###############
+
+# making Confusion Matrices
 for name, model in models:
     probs = model.predict(X_test)
 
     # if DNN we have to transform the output 
     if name != 'DNN':
         y_pred_temp = probs
-    else:
+    else: # When model is DNN we have to change OneHotEncoeded Data to our primary form
         y_pred_temp=np.array(pd.DataFrame(data=probs,columns=[1,2,3,4,5,6,7]).idxmax(1))
 
     # Plotting Confusion Matrix
     plt.title('Confusion Matrix: {}'.format(name))
     sns.heatmap(confusion_matrix(y_test,y_pred_temp),annot=True,cmap=newcmp,fmt='g')
-    plt.savefig('.\\Results\\Confusion_'+name+'.png')
+    plt.savefig('.\\Results\\Confusion_'+name+'.png') # Saving Confusion matrices
     plt.clf()
-# %% 
-
 
 
 accuracy_score = []
 recall_score = []
 f1_score = []
 precision_score = []
-# %% 
-# Code to 
+
+###############
+### Metrics
+###############
+
+# computing metrics: Accuracy Score, Precison, Recall, F1 
 for name, model in models:
     print('Predicting: '+name)
-    if (name != 'DNN') and (name != 'Naive'):
-        probs = model.predict(X_test)
-        predictions = model.predict(X_test)
-        y_pred_temp=probs
+    probs = model.predict(X_test)
 
-    elif name == 'Naive':
-        probs = model.predict(X_test)
+    if (name != 'DNN') :
         y_pred_temp=probs
-
-    else:
-        probs = model.predict(X_test)
-        predictions = np.argmax(model.predict(X_test),axis=1)
+    else: # When model is DNN we have to change OneHotEncoeded Data to our primary form
         y_pred_temp=np.array(pd.DataFrame(data=probs,columns=[1,2,3,4,5,6,7]).idxmax(1))
 
     print()
+
+    # Using Weighted Metrics
     accuracy_score.append(metrics.accuracy_score(y_test, y_pred_temp))
     precision_score.append(metrics.precision_score(y_test, y_pred_temp,average='weighted'))
     recall_score.append(metrics.recall_score(y_test, y_pred_temp,average='weighted'))
@@ -103,8 +108,5 @@ d = {'precision_score': precision_score,
     }
 df = pd.DataFrame(data=d)
 df.insert(loc=0, column='Method', value=['LogReg','SVM','DNN','Naive'])
-df.to_csv('.\\Results\\Results.csv')
-# %%
-df
+df.to_csv('.\\Results\\Results.csv') # Saving csv with classification metrics results
 
-# %%
